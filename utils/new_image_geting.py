@@ -30,7 +30,7 @@ def save_image(save_dir, image_index, color_image, depth_image):
     print(f"[{image_index}] Saved color image to {color_path}")
     print(f"[{image_index}] Saved depth image to {depth_path}")
 
-def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image):
+def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_threshold=800):
     # --- 确保文件夹 ---
     raw_color_dir = os.path.join(save_dir, "raw_color")
     raw_depth_dir = os.path.join(save_dir, "raw_depth")
@@ -47,15 +47,22 @@ def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image):
     cv2.imwrite(raw_color_path, color_image)
     cv2.imwrite(raw_depth_path, depth_image)
 
-    # --- 提取绿色 mask ---
+    # --- 深度过滤 ---
+    depth_mask = (depth_image > -depth_threshold) & (depth_image < depth_threshold)
+    depth_mask = depth_mask.astype(np.uint8) * 255
+
+    # --- 颜色过滤 ---
     hsv = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
     lower_green = np.array([35, 40, 40])
     upper_green = np.array([85, 255, 255])
-    mask = cv2.inRange(hsv, lower_green, upper_green)
+    color_mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    # --- 合并 mask ---
+    combined_mask = cv2.bitwise_and(depth_mask, color_mask)
 
     # --- 过滤后的图像 ---
-    color_masked = cv2.bitwise_and(color_image, color_image, mask=mask)
-    depth_masked = cv2.bitwise_and(depth_image, depth_image, mask=mask)
+    color_masked = cv2.bitwise_and(color_image, color_image, mask=combined_mask)
+    depth_masked = cv2.bitwise_and(depth_image, depth_image, mask=combined_mask)
 
     # --- 保存过滤后 ---
     mask_color_path = os.path.join(mask_color_dir, f"color_{image_index:03d}.png")
