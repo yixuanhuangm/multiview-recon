@@ -30,8 +30,9 @@ def save_image(save_dir, image_index, color_image, depth_image):
     print(f"[{image_index}] Saved color image to {color_path}")
     print(f"[{image_index}] Saved depth image to {depth_path}")
 
-def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_threshold=800):
-    # --- 确保文件夹 ---
+
+def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_threshold=2000):
+    # --- Ensure folders ---
     raw_color_dir = os.path.join(save_dir, "raw_color")
     raw_depth_dir = os.path.join(save_dir, "raw_depth")
     mask_color_dir = os.path.join(save_dir, "mask_color")
@@ -41,38 +42,37 @@ def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_t
     os.makedirs(mask_color_dir, exist_ok=True)
     os.makedirs(mask_depth_dir, exist_ok=True)
 
-    # --- 保存原始 ---
+    # --- Save raw images ---
     raw_color_path = os.path.join(raw_color_dir, f"color_{image_index:03d}.png")
     raw_depth_path = os.path.join(raw_depth_dir, f"depth_{image_index:03d}.png")
     cv2.imwrite(raw_color_path, color_image)
     cv2.imwrite(raw_depth_path, depth_image)
 
-    # --- 深度过滤 ---
-    depth_mask = (depth_image > -depth_threshold) & (depth_image < depth_threshold)
+    # --- Depth filtering ---
+    depth_mask = (depth_image < depth_threshold)
     depth_mask = depth_mask.astype(np.uint8) * 255
 
-    # --- 颜色过滤 ---
+    # --- Color filtering (green area) ---
     hsv = cv2.cvtColor(color_image, cv2.COLOR_BGR2HSV)
     lower_green = np.array([35, 40, 40])
     upper_green = np.array([85, 255, 255])
     color_mask = cv2.inRange(hsv, lower_green, upper_green)
 
-    # --- 合并 mask ---
+    # --- Combine depth and color masks ---
     combined_mask = cv2.bitwise_and(depth_mask, color_mask)
 
-    # --- 过滤后的图像 ---
+    # --- Apply mask to images ---
     color_masked = cv2.bitwise_and(color_image, color_image, mask=combined_mask)
     depth_masked = cv2.bitwise_and(depth_image, depth_image, mask=combined_mask)
 
-    # --- 保存过滤后 ---
+    # --- Save masked results ---
     mask_color_path = os.path.join(mask_color_dir, f"color_{image_index:03d}.png")
     mask_depth_path = os.path.join(mask_depth_dir, f"depth_{image_index:03d}.png")
     cv2.imwrite(mask_color_path, color_masked)
     cv2.imwrite(mask_depth_path, depth_masked)
 
-    print(f"[{image_index}] Raw saved to {raw_color_path}, {raw_depth_path}")
-    print(f"[{image_index}] Masked saved to {mask_color_path}, {mask_depth_path}")
-
+    print(f"[{image_index}] Raw images saved to {raw_color_path}, {raw_depth_path}")
+    print(f"[{image_index}] Masked images saved to {mask_color_path}, {mask_depth_path}")
 
 
 def capture_rgbd_images(full_save_dir, num_images=1000, interval=2.0, capture_mode="automatic"):
