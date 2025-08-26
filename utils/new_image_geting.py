@@ -31,7 +31,7 @@ def save_image(save_dir, image_index, color_image, depth_image):
     print(f"[{image_index}] Saved depth image to {depth_path}")
 
 
-def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_threshold=800):
+def save_rgbd_with_mask(save_dir, image_index, color_image, depth_image, depth_threshold=2000):
     # --- Ensure folders ---
     raw_color_dir = os.path.join(save_dir, "raw_color")
     raw_depth_dir = os.path.join(save_dir, "raw_depth")
